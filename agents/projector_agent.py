@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -7,8 +6,8 @@ from app.deps.openai_client import chat
 from app.settings import settings
 from agents.router import classify as classify_message
 from agents.base import GraphState, add_trace
+from guards.photo_guard import image_has_person
 from schemas.types import Mode
-
 
 PROMPTS_DIR = Path(__file__).resolve().parent / "prompts"
 
@@ -33,16 +32,16 @@ async def node_classify(state: GraphState) -> GraphState:
 
 
 async def _projector_call(prompt_user: str, image_url: str | None = None) -> str:
-    system_text = SYSTEM_PROMPT
+    system_text = SYSTEM_PROMPT.strip()
     if PROJECT_PROMPT.strip():
-        system_text += "\n\nFoundation:\n" + PROJECT_PROMPT.strip()
+        system_text += "\n\n[Foundation]\n" + PROJECT_PROMPT.strip()
 
     messages = [
         {"role": "system", "content": system_text},
     ]
 
     if image_url:
-        # vision-style message
+
         messages.append({
             "role": "user",
             "content": [
@@ -60,15 +59,28 @@ async def _projector_call(prompt_user: str, image_url: str | None = None) -> str
 
 async def node_handle_photo(state: GraphState) -> GraphState:
     msg = state.get("message", "")
-    image_url = state.get("image_url")
-    add_trace(state, "projector_photo_start", {"image_url": image_url})
-    prompt_user = (
+    image_ref = state.get("image_url")
+
+    ok = image_has_person(image_ref) if image_ref else False
+    add_trace(state, "photo_validated", {"image_present": bool(image_ref), "has_person": ok})
+
+    if not ok:
+        state["output"] = (
+            "I couldn’t confidently detect a person in that image. "
+            "Share a clearer face photo (good lighting, front view), "
+            "or tell me a bit more (name, role, nickname)."
+        )
+        state["next_action"] = "need_better_photo"
+        return state
+
+    add_trace(state, "projector_photo_start", {"image_url": image_ref})
+    prompt = (
         "Given the image, play the Projector: speculate about this person's role, "
         "vibes, likely profession or archetype. Entertainment-only."
     )
-    result = await _projector_call(prompt_user + "\n\nUser text: " + msg, image_url=image_url)
-    state["output"] = result
+    state["output"] = await _projector_call(f"{prompt}\n\nUser text: {msg}", image_url=image_ref)
     add_trace(state, "projector_photo_done", {})
+    state["next_action"] = "none"  # explicit end-state
     return state
 
 

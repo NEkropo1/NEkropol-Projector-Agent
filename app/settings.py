@@ -11,6 +11,7 @@ class Settings(BaseSettings):
 
     openai_model_gpt: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_GPT")
     openai_model_cheap: str = Field(default="gpt-4o-mini", alias="OPENAI_MODEL_CHEAP")
+    google_url: str = Field(default="https://www.google.com/search?q=", alias="GOOGLE_URL")
 
     class Config:
         env_file = ".env"

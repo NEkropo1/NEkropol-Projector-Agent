@@ -14,6 +14,7 @@ class GraphState(TypedDict, total=False):
     trace: List[TraceStep]
     persona_info: Dict[str, Any]
     output: str
+    next_action: str
 
 
 def add_trace(state: GraphState, step: str, data: Dict[str, Any] | None = None) -> None:

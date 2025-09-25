@@ -3,9 +3,7 @@
 
 Entertainment-only **Projector** agent skeleton using **FastAPI + LangGraph** with an **OpenAI** wrapper and **Hypercorn** as the ASGI runner.
 
-> Foundation: keep `project_prompt.md` nearby and treat it as the root philosophy for prompts and behavior.
 
-## TL;DR
 
 ```bash
 # 1) Create and activate venv (pick one)
@@ -23,7 +21,7 @@ cp .env.example .env
 # edit .env with your OPENAI_API_KEY (and optional base url, model names, etc.)
 
 # 4) Run
-hypercorn app.main:app --reload
+hypercorn -k uvloop app.main:app
 # or prod-ish
 # hypercorn app.main:app --bind 0.0.0.0:8000 --workers 2
 ```
@@ -34,12 +32,12 @@ Then:
 
 ## Why Hypercorn?
 
-Hypercorn plays nice with uvloop and will later host guardrails/middleware enforcing output policies.
+Hypercorn plays nice with uvloop and could later host guardrails/middleware enforcing output policies.
 
 ## Rough Flow
 
 1. **Router** classifies the message into one of:
-   - `PERSON_PHOTO` (image-based projection)
+   - `PERSON_PHOTO` (image-based projection, checked by [YuNet](https://github.com/opencv/opencv_zoo/tree/main/models/face_detection_yunet))
    - `PERSON_METADATA` (name/creds/nickname; later we’ll enable search)
    - `CASUAL` (hi/hello/weather/etc. — handled by a cheap local path)
    - `OUT_OF_SCOPE` (heavy/forbidden asks → canned NEkropol reply)
@@ -79,9 +77,9 @@ projector/
       projector_system.md  # entertainment-only system prompt
       project_prompt.md    # put your global project_prompt.md here (foundation)
   tools/
-    local_simple.py        # ultra-cheap responses for CASUAL
-    web_search.py          # placeholder (wire later to SerpAPI/Bing/etc.)
-    image_utils.py         # tiny helpers for image inputs
+    *                      # There was idea for a lot of tools
+    *                      # But sadly I don't have time for their implementation
+    *                      # If you're curious you can play around
   schemas/
     types.py               # Pydantic models
   .env.example
@@ -100,3 +98,4 @@ projector/
 - **Tracing/metrics:** Prometheus counters, request ids, timing.
 - **Auth & quotas:** per-user rate limits and usage budgets.
 - **Sandboxed python:** separate process + time+mem limits.
+- **Sandboxed rust:** separate process + time+mem limits.

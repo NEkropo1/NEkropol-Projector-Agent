@@ -93,5 +93,5 @@ typings/
 /logs/
 /tmp/
 /data/
-/cache/
+/cache_db/
 /artifacts/

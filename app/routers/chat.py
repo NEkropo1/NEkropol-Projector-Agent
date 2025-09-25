@@ -1,36 +1,23 @@
-
-from __future__ import annotations
-
-from fastapi import APIRouter
-from agents.base import compile_graph
-from agents.projector_agent import (
-    node_classify, node_handle_photo, node_handle_meta, node_handle_casual, node_handle_oos
-)
-from schemas.types import ChatRequest, ChatResponse
-
+from fastapi import APIRouter, HTTPException
+import schemas
+from app.services import conversation
 
 router = APIRouter()
 
 
-graph = compile_graph(
-    classify_node=node_classify,
-    handle_photo=node_handle_photo,
-    handle_meta=node_handle_meta,
-    handle_casual=node_handle_casual,
-    handle_oos=node_handle_oos,
-)
+@router.post("/chat", response_model=schemas.types.ChatResponse)
+async def chat_endpoint(req: schemas.types.ChatRequest):
+    try:
+        result = await conversation.run_new(req.message, str(req.image_url) if req.image_url else None)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    return schemas.types.ChatResponse(**result)
 
 
-@router.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
-    init_state = {
-        "message": req.message,
-        "image_url": str(req.image_url) if req.image_url else None,
-        "trace": [],
-    }
-    result = await graph.ainvoke(init_state)
-    return ChatResponse(
-        mode=result.get("mode", "OUT_OF_SCOPE"),
-        output=result.get("output", ""),
-        trace=result.get("trace", []),
-    )
+@router.post("/chat/continue", response_model=schemas.types.ChatResponse)
+async def chat_continue(req: schemas.types.ChatContinueRequest):
+    try:
+        result = await conversation.continue_conversation(req.conversation_id, req.message, str(req.image_url) if req.image_url else None)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return schemas.types.ChatResponse(**result)

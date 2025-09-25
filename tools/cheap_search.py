@@ -9,12 +9,16 @@ TIMEOUT = httpx.Timeout(10.0, read=15.0)
 
 def fetch_visible_text(url: str, max_chars: int = 15000) -> str:
     with httpx.Client(follow_redirects=True, timeout=TIMEOUT, headers=DEFAULT_HEADERS) as client:
-        r = client.get(url)
-        r.raise_for_status()
-        html = r.text
+        response = client.get(url)
+        response.raise_for_status()
+        html = response.text
+
     soup = BeautifulSoup(html, "lxml")
-    for tag in soup(["script", "style", "noscript"]): tag.decompose()
-    for tag in soup.select("header, footer, nav, form, aside"): tag.decompose()
+    for tag in soup(["script", "style", "noscript"]):
+        tag.decompose()
+    for tag in soup.select("header, footer, nav, form, aside"):
+        tag.decompose()
+
     text = " ".join(soup.get_text(" ").split())
     return text[:max_chars]
 
