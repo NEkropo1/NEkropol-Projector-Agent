@@ -29,6 +29,7 @@ hypercorn -k uvloop app.main:app
 Then:
 - `GET /health` — health check.
 - `POST /chat` — main entry. Provide `{ "message": "...", "image_url": "..." }` (image_url optional).
+- `POST /chat/continue` - entry for continuing some unfinished chat, for example, if photo is unclear  
 
 ## Why Hypercorn?
 
@@ -99,3 +100,5 @@ projector/
 - **Auth & quotas:** per-user rate limits and usage budgets.
 - **Sandboxed python:** separate process + time+mem limits.
 - **Sandboxed rust:** separate process + time+mem limits.
+
+This project uses the YuNet model from OpenCV Zoo (Apache License 2.0). My own glue code is under MIT.
