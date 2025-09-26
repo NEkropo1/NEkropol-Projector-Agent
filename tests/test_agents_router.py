@@ -39,3 +39,7 @@ def test_classify_meta_patterns(message):
 )
 def test_classify_casual_patterns(message):
     assert router.classify(message, None) == "CASUAL"
+
+
+def test_classify_whitespace_only_defaults_to_out_of_scope():
+    assert router.classify("   \n\t", None) == "OUT_OF_SCOPE"

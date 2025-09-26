@@ -100,3 +100,38 @@ def test_image_has_person_threshold(monkeypatch, faces, threshold, expected):
 
     assert pg.image_has_person("img", threshold=threshold) is expected
     assert det.input_size == (5, 10)
+
+
+def test__to_bytes_imencode_failure(monkeypatch):
+    arr = np.zeros((2, 2, 3), dtype=np.uint8)
+    monkeypatch.setattr(pg.cv, "imencode", lambda ext, image: (False, None))
+
+    assert pg._to_bytes(arr) is None
+
+
+def test__to_bytes_http_failure(monkeypatch):
+    class Boom(Exception):
+        pass
+
+    def fake_client(*args, **kwargs):
+        raise Boom
+
+    monkeypatch.setattr(pg.httpx, "Client", fake_client)
+
+    assert pg._to_bytes("https://example.com/image.jpg") is None
+
+
+def test_image_has_person_no_faces(monkeypatch):
+    monkeypatch.setattr(pg, "_to_bytes", lambda image: b"bytes")
+    monkeypatch.setattr(
+        pg.np, "frombuffer", lambda buffer, dtype: np.zeros((1,), dtype=np.uint8)
+    )
+    monkeypatch.setattr(
+        pg.cv, "imdecode", lambda arr, flags: np.zeros((10, 5, 3), dtype=np.uint8)
+    )
+
+    det = DummyDetector(None)
+    monkeypatch.setattr(pg, "coldstart_yunet", lambda: det)
+
+    assert pg.image_has_person("img") is False
+    assert det.input_size == (5, 10)

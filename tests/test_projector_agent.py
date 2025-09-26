@@ -174,3 +174,25 @@ def test_node_handle_oos():
     assert "outside my scope" in result["output"].lower()
     steps = [step["step"] for step in result["trace"]]
     assert steps == ["oos_start", "oos_done"]
+
+
+def test__projector_call_ignores_empty_image_and_strips_prompts(monkeypatch):
+    recorded = {}
+
+    async def fake_chat(messages, model, temperature):
+        recorded["messages"] = messages
+        recorded["model"] = model
+        recorded["temperature"] = temperature
+        return "ok"
+
+    monkeypatch.setattr(projector, "chat", fake_chat)
+    monkeypatch.setattr(projector, "settings", DummySettings("trim-model"))
+    monkeypatch.setattr(projector, "SYSTEM_PROMPT", "  sys text  ")
+    monkeypatch.setattr(projector, "PROJECT_PROMPT", "   ")
+
+    result = asyncio.run(projector._projector_call("ask something", image_url=""))
+
+    assert result == "ok"
+    assert recorded["messages"][0] == {"role": "system", "content": "sys text"}
+    assert recorded["messages"][1] == {"role": "user", "content": "ask something"}
+    assert recorded["temperature"] == 0.7
